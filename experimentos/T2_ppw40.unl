@@ -1,0 +1,17 @@
+# Pendência 4 da CALIBRACAO_T2_leve: quarto nível de PPW (40). Com 4 níveis o piso passa a ser estimável como tendência.
+# CUSTO: PPW 40 pode não caber em ~8 GB com backend direto. O backend auto repete o ponto com o iterativo (mesma física) se faltar RAM.
+# Rode /validar antes: a estimativa de custo (R08) declara pontos sem backend viável.
+EXPERIMENT T2_ppw40 {
+    GOAL    "Piso numérico de R, T e chi95 com PPW 15, 20, 30, 40: a tendência das diferenças consecutivas se mantém além de PPW 30?"
+    CASE    geometry = [ORDERED, CLUSTERED, RANDOM_1000]
+    FIX     frequency_thz = 300.0, n_bg = N_FUNDO_ESTUDO, n_inclusion = N_INCLUSAO_ESTUDO, pml_nm = PML_NM_ESTUDO, buffer_nm = BUFFER_NM_ESTUDO
+    VARY    ppw = [15, 20, 30, 40]
+    SOLVE   fdfd3d_te_y, backend = auto, reserva_gb = 2.0
+    MEASURE R = R_power, T = T_power, A = A_volume, chi95, f_discreta, ppw_efetivo
+    DERIVE  closure = 1 - R - T - A
+    LIMIT   closure_tol = pending
+    CHECK   fechamento_energia : abs(closure) <= closure_tol
+    COMPARE passos = successive_diff(of=[R, T, chi95], along=ppw, group_by=[geometry])
+    ANALYZE conv   = convergence(of=[R, T, chi95], along=ppw, group_by=[geometry], safety_factor=3, working_ppw=30)
+    OUTPUT  tables=[cases, passos, conv], scalars=[conv]
+}

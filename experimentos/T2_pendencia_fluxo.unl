@@ -1,0 +1,21 @@
+# Pendências 2 e 3 da CALIBRACAO_T2_leve: mesma física do T2_leve, agora com as duas extrações de fluxo lado a lado.
+# R_power/T_power (Poynting, todas as ordens) x R_specular/T_specular (só ordem 0) x A_volume (integral de q).
+# A diferença power-specular NÃO é erro: inclui espalhamento lateral. O experimento só a mede; o limite é decisão do pesquisador.
+EXPERIMENT T2_pendencia_fluxo {
+    GOAL    "R e T por Poynting vs ordem especular, e A_volume vs 1-R-T, nas mesmas condições do T2_leve (PPW 15, 20, 30)"
+    CASE    geometry = [ORDERED, CLUSTERED, RANDOM_1000]
+    FIX     frequency_thz = 300.0, n_bg = N_FUNDO_ESTUDO, n_inclusion = N_INCLUSAO_ESTUDO, pml_nm = PML_NM_ESTUDO, buffer_nm = BUFFER_NM_ESTUDO
+    VARY    ppw = [15, 20, 30]
+    SOLVE   fdfd3d_te_y
+    MEASURE R = R_power, Rs = R_specular, T = T_power, Ts = T_specular, A = A_volume, Af = A_flux_power, Adiff = A_difference_power, f_discreta, ppw_efetivo
+    DERIVE  dR = R - Rs
+    DERIVE  dT = T - Ts
+    DERIVE  closure = 1 - R - T - A
+    LIMIT   closure_tol = pending
+    LIMIT   spec_tol = pending
+    CHECK   fechamento_volume : abs(closure) <= closure_tol
+    CHECK   R_power_vs_specular : abs(dR) <= spec_tol
+    CHECK   T_power_vs_specular : abs(dT) <= spec_tol
+    COMPARE passos = successive_diff(of=[dR, dT, Adiff], along=ppw, group_by=[geometry])
+    OUTPUT  tables=[cases, passos]
+}

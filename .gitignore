@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.bak
+*.npz
+*.zip
+dados/
+runs/
+_mapa/
+entrada/
+comunicacao/entrada/
+comunicacao/saida/
+comunicacao/reuniao/
+comunicacao/log.md
+comunicacao/status.json
+.env

@@ -1,0 +1,20 @@
+# ATENÇÃO: buffer_nm abaixo de BUFFER_NM_ESTUDO viola a regra dos monitores (buffer >= 2d).
+# Redesenhar a varredura antes de rodar (decisão do pesquisador).
+# T6 (parte z): efeito da distância ao sumidouro térmico em z (buffer_nm). Só testa a parte do contorno que o parâmetro controla.
+# LIMITE CONHECIDO: o hotspot da Barreira Térmica estava a 3 células de uma face LATERAL (x), que buffer_nm não move.
+# Este experimento NÃO decide T6 sozinho: a parte lateral e o substrato como sumidouro estão em propostas/ (primitivas faltantes).
+# A razão de Tmax entre RANDOM_1003 e RANDOM_1018 sai da tabela cases (não há comparador de razão entre geometrias).
+EXPERIMENT T6_sumidouro_z {
+    GOAL    "Tmax, Tmax/P_abs e a razão entre geometrias persistem quando a distância ao sumidouro em z aumenta (buffer 200 a 600 nm)?"
+    CASE    geometry = [ORDERED, CLUSTERED, RANDOM_1000, RANDOM_1003, RANDOM_1018]
+    FIX     frequency_thz = 300.0, n_bg = N_FUNDO_ESTUDO, n_inclusion = N_INCLUSAO_ESTUDO, pml_nm = PML_NM_ESTUDO, ppw = 20, k_bg = 0.026, k_inclusion = 150.0
+    VARY    buffer_nm = [200.0, 300.0, 450.0, 600.0]
+    SOLVE   fdfd3d_te_y, backend = auto, reserva_gb = 2.0
+    MEASURE R = R_power, T = T_power, A = A_volume, P = P_abs_W, Tmax = Tmax_K, Tmean = Tmean_K, chi95, ppw_efetivo
+    DERIVE  closure = 1 - R - T - A
+    DERIVE  rth = Tmax / P
+    LIMIT   closure_tol = pending
+    CHECK   fechamento_energia : abs(closure) <= closure_tol
+    COMPARE passos = successive_diff(of=[R, T, A, P, Tmax, rth, chi95], along=buffer_nm, group_by=[geometry])
+    OUTPUT  tables=[cases, passos]
+}

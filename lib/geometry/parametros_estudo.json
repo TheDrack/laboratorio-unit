@@ -1,0 +1,188 @@
+{
+  "versao": 2,
+  "descricao": "Parâmetros de estudo e de validação do UNIT-001. Único lugar onde esses valores são escritos.",
+  "tipo_onda": "eletromagnetica",
+  "fisica_eletromagnetica": {
+    "_nota": "Válido para ondas eletromagnéticas (Maxwell). Outros tipos de onda exigem bloco próprio, com a velocidade de propagação do meio.",
+    "velocidade_luz_vacuo_m_s": 299792458.0,
+    "permissividade_vacuo_F_m": 8.8541878128e-12
+  },
+  "malha": {
+    "dx_m": 2.5e-08
+  },
+  "silicio": {
+    "n": [
+      3.6,
+      0.0005
+    ],
+    "k_termica_w_mk": 148.0,
+    "rho_kg_m3": 2329.0,
+    "cp_j_kgk": 712.0
+  },
+  "ar": {
+    "n": [
+      1.0,
+      0.0
+    ],
+    "k_termica_w_mk": 0.026
+  },
+  "frequencias_thz": [
+    280.0,
+    300.0,
+    320.0
+  ],
+  "geometria": {
+    "nx": 16,
+    "ny": 16,
+    "nz": 16,
+    "pillar_nx": 4,
+    "pillar_ny": 4,
+    "pillar_nz": 8,
+    "n_pillars": 4,
+    "random_seeds_start": 1000,
+    "random_seeds_count": 20
+  },
+  "monitores": {
+    "offset_frac": 0.5
+  },
+  "estudo": {
+    "a_periodo_m": 2.5e-07,
+    "n_random_baseline": 500,
+    "n_batches": 8,
+    "seed_base_baseline": 20000,
+    "max_cores": 8,
+    "bounds_lo": [
+      1.1,
+      0.001,
+      1.1,
+      0.001,
+      1.1,
+      0.001,
+      1.1,
+      0.001,
+      0.05,
+      0.05,
+      0.05,
+      0.05
+    ],
+    "bounds_hi": [
+      3.5,
+      0.5,
+      3.5,
+      0.5,
+      3.5,
+      0.5,
+      3.5,
+      0.5,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "seeds_alvo": [
+      1002,
+      1003,
+      1004,
+      1007,
+      1017,
+      1018
+    ],
+    "freqs_alvo_thz": [
+      280.0
+    ],
+    "n_fundo": [
+      1.0,
+      0.0
+    ],
+    "n_inclusao": [
+      2.0,
+      0.05
+    ],
+    "k_fundo_w_mk": 0.026,
+    "k_inclusao_w_mk": 150.0,
+    "ppw_fdtd": 20,
+    "ppw_validacao_fdfd3d": 20,
+    "ppw_comparador_fdfd": 30,
+    "npml_comparador_fdfd": 25,
+    "nx_comparador_fdfd": 8,
+    "f_ref_hz": 300000000000000.0,
+    "valid_n_teste": [
+      [
+        1.5,
+        0.0
+      ],
+      [
+        2.0,
+        0.0
+      ],
+      [
+        2.0,
+        0.05
+      ],
+      [
+        2.0,
+        0.15
+      ]
+    ],
+    "valid_n_slab_teste": [
+      2.0,
+      0.05
+    ],
+    "pml_nm_estudo": 300.0,
+    "buffer_nm_estudo": 1100.0,
+    "closure_tol": 1e-12,
+    "closure_tol_base": "Identidade algébrica (A_vol e R,T vêm do mesmo campo): o desvio é só arredondamento em dupla precisão. Medido em 6 pontos válidos: |closure| entre 3.6e-14 e 4.2e-14. 1e-12 fica ~25x acima do maior valor medido e ~1e4x acima de eps (2.2e-16). Vazamentos físicos medidos estão em 1e-3 a 1e-2.",
+    "tol_backend_comparacao_rel": 1e-06,
+    "tol_backend_base": "Medido no ppw 30 (ORDERED): direto vs iterativo, dR/R = 4e-8, dT/T = 2e-9. GMRES com rtol = 1e-8: o erro observado é o critério de parada do solver. 1e-6 fica ~25x acima do maior erro medido e ~100x acima do critério do solver."
+  },
+  "tolerancias_pendentes": {
+    "_nota": "Valores de tolerância do código. tol_ordem_convergencia e closure_tol têm base escrita ao lado.",
+    "consistencia_L2": 0.01,
+    "escala": 1e-06,
+    "residuo_sistema": 1e-08,
+    "fator_tol_discretizacao": 5.0,
+    "q_teste_escala_w_m3": 20000000000000.0,
+    "alfa_escala": 10000000.0,
+    "rel_zero": 1e-12,
+    "k_positive": 1e-14,
+    "k_consistency": 1e-10,
+    "invariant_rel": 1e-09,
+    "solver_residual": 1e-08,
+    "autotest": 1e-12,
+    "slsqp": 1e-12,
+    "slsqp_maxiter": 2000,
+    "cube_n_autotest": 11,
+    "tol_ordem_convergencia": 0.15,
+    "tol_ordem_convergencia_base": "Escolha de projeto, não lei física. Estimativas independentes medidas: p = 2.03 (FDFD 3D, lâmina) e p = 2.10 (FDTD CW, lâmina), desvios de 0.03 e 0.10 em relação a 2. Limite 0.15 aceita esse comportamento com folga de 0.05 e rejeita p = 1.85 ou ordem 1 (degradação de fronteira/PML). Metodologia de referência: Celik et al. 2008 (J. Fluids Eng., estimativa de ordem com 3 malhas); Roache 1994 (GCI). Ajustar aqui se a decisão for outra."
+  },
+  "lamina_teste": {
+    "lambda0_m": 1e-06,
+    "n_bg": 1.0,
+    "n_slab": 2.0,
+    "espessura_m": 3e-07,
+    "nx": 4
+  },
+  "convergencia": {
+    "niveis_ppw": [
+      20,
+      30,
+      40
+    ],
+    "ordem_teorica": 2.0
+  },
+  "varredura_cw_lambdas_m": [
+    9e-07,
+    1e-06,
+    1.1e-06
+  ],
+  "presets_materiais": {
+    "ar": [
+      1.0,
+      0.0
+    ],
+    "silicio": [
+      3.6,
+      0.0005
+    ]
+  }
+}

@@ -1,0 +1,324 @@
+📄 DOCUMENTAÇÃO CONSOLIDADA: UNIT-001
+Acoplamento Eletromagnético-Térmico e o Fenômeno da Barreira Térmica Periférica
+Este documento serve como registro científico, guia de reuso e base para as próximas fases de investigação do projeto UNIT.
+1. Resumo Executivo
+A investigação UNIT-001 demonstrou que a organização espacial da matéria pode alterar drasticamente a resposta térmica máxima (
+𝑇
+max
+⁡
+T 
+max
+​
+ ) de um sistema, mesmo quando a absorção eletromagnética total integrada (
+𝑃
+a
+b
+s
+P 
+abs
+​
+  ou 
+𝐴
+A) é mantida constante. Através de uma série de testes de desacoplamento, mapeamento de fluxo e perturbação localizada, identificamos o mecanismo causal: a Barreira Térmica Periférica. Este fenômeno ocorre quando a distribuição espacial aleatória posiciona uma região de geração de calor (
+𝑞
+>
+0
+q>0) adjacente às fronteiras do domínio, separada do sumidouro térmico (
+𝑇
+=
+0
+T=0) por uma fina camada de material isolante (
+𝑘
+≈
+0.026
+k≈0.026 W/m·K), criando um resistor térmico em série que eleva localmente a temperatura em ordens de grandeza.
+2. Metodologia Computacional Utilizada
+A arquitetura desenvolvida garante a separação rigorosa entre os domínios físico e numérico:
+Solver EM (FDFD 3D): Calcula os campos 
+𝐸
+,
+𝐻
+E,H e a densidade de potência absorvida 
+𝑞
+a
+b
+s
+(
+𝑟
+)
+=
+1
+2
+𝜔
+𝜖
+0
+I
+m
+(
+𝜖
+𝑟
+)
+∣
+𝐸
+∣
+2
+q 
+abs
+​
+ (r)= 
+2
+1
+​
+ ωϵ 
+0
+​
+ Im(ϵ 
+r
+​
+ )∣E∣ 
+2
+ .
+Mascaramento Físico: O campo 
+𝑞
+a
+b
+s
+q 
+abs
+​
+  é estritamente zerado fora da região estrutural (PML/buffer) para evitar artefatos de "calor fantasma".
+Solver Térmico (Poisson 3D Customizado): Resolve 
+−
+∇
+⋅
+(
+𝑘
+(
+𝑟
+)
+∇
+𝑇
+)
+=
+𝑞
+a
+b
+s
+−∇⋅(k(r)∇T)=q 
+abs
+​
+  com condições de contorno de Dirichlet (
+𝑇
+=
+0
+T=0) nas 6 faces do domínio FDFD expandido. Utiliza média harmônica para 
+𝑘
+k nas interfaces.
+Análise de Swap (Decomposição): Troca controlada dos campos 
+𝑞
+q e 
+𝑘
+k entre diferentes geometrias para isolar efeitos lineares e não-lineares (interação).
+Análise de Fluxo e Perturbação: Cálculo de 
+𝐽
+⃗
+=
+−
+𝑘
+∇
+𝑇
+J
+ =−k∇T e 
+∇
+⋅
+𝐽
+⃗
+∇⋅ 
+J
+ , seguido de testes de perturbação local de 
+𝑘
+k para validar causalidade.
+3. Cronologia da Descoberta (Rastro de Auditoria)
+Para reuso futuro, é vital entender como a conclusão foi alcançada, evitando viés de confirmação:
+Fase A (Estatística): Identificação de pares de geometrias com 
+Δ
+𝐴
+<
+1
+%
+ΔA<1%, mas razão 
+𝑇
+max
+⁡
+,
+1
+/
+𝑇
+max
+⁡
+,
+2
+>
+2
+T 
+max,1
+​
+ /T 
+max,2
+​
+ >2.
+Fase B (Hipótese Inicial - Refutada): Suspeita de "Gargalo de Fluxo" (Thermal Choking) em 
+(
+𝑥
+=
+5
+,
+𝑦
+=
+8
+,
+𝑧
+=
+15
+)
+(x=5,y=8,z=15). O teste de fluxo mostrou que 
+∣
+𝐽
+⃗
+∣
+∣ 
+J
+ ∣ era alto e 
+∇
+⋅
+𝐽
+⃗
+<
+0
+∇⋅ 
+J
+ <0, refutando a ideia de estrangulamento com fluxo baixo.
+Fase C (Teste de Causalidade): Perturbação de 
+𝑘
+k no ponto 
+(
+5
+,
+8
+,
+15
+)
+(5,8,15) de 
+0.026
+0.026 para 
+150.0
+150.0. Resultado: 
+𝑇
+max
+⁡
+T 
+max
+​
+  global não caiu. O máximo migrou para 
+(
+3
+,
+8
+,
+29
+)
+(3,8,29).
+Fase D (Autópsia do Verdadeiro Hotspot): Análise de 
+(
+3
+,
+8
+,
+29
+)
+(3,8,29) revelou 
+𝑞
+≈
+1383
+q≈1383 W/m³, 
+𝑘
+=
+0.026
+k=0.026 W/m·K, e distância de apenas 3 células (75 nm) da borda 
+𝑇
+=
+0
+T=0.
+4. Mecanismo Físico Formalizado: "Barreira Térmica Periférica"
+O fenômeno é regido pela Lei de Fourier em regime estacionário. Quando um voxel com fonte 
+𝑞
+q e baixa condutividade 
+𝑘
+b
+g
+k 
+bg
+​
+  está a uma distância 
+Δ
+𝑥
+Δx de uma fronteira 
+𝑇
+=
+0
+T=0, o gradiente de temperatura necessário para dissipar a energia é:
+∣
+∇
+𝑇
+∣
+≈
+𝑞
+⋅
+Δ
+𝑥
+𝑘
+b
+g
+∣∇T∣≈ 
+k 
+bg
+​
+ 
+q⋅Δx
+​
+ 
+Como 
+𝑘
+b
+g
+k 
+bg
+​
+  é muito pequeno (ar/vácuo), 
+∣
+∇
+𝑇
+∣
+∣∇T∣ torna-se extremamente íngreme, resultando em um pico de temperatura local massivo. A organização espacial (RANDOM/CLUSTERED) aumenta a probabilidade estatística de que um hotspot de campo EM (
+𝑞
+q) se alinhe acidentalmente com essa configuração geométrica de "resistor em série" com a borda.
+5. Artefatos de Código para Reuso
+Os seguintes scripts formam o pipeline validado e devem ser preservados:
+extrair_dados_geometrias_v5.py: Geração de dados com mascaramento físico correto.
+frente1_desacoplamento_v3.py: Busca estatística de pares com métricas espaciais avançadas (CoM 3D, concentração).
+unit002_q_k_swap_concordant.py: Solver de decomposição de swap.
+unit004_heat_flux_analysis_v2.py: Cálculo e visualização de 
+𝐽
+⃗
+J
+  e 
+∇
+⋅
+𝐽
+⃗
+∇⋅ 
+J
+ .
+unit005_perturbation_test.py: Teste de causalidade por perturbação localizada de 
+𝑘
+k.

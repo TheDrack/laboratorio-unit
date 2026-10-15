@@ -1,0 +1,259 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# UNIT-L — ESPECIFICAÇÃO DA LINGUAGEM SEMÂNTICA DE EXPERIMENTOS
+#
+# Este arquivo é a ÚNICA fonte da sintaxe. O parser (parser.py) lê daqui; a referência
+# para LLMs (REFERENCIA_UNL.md / describe_language) é GERADA daqui. Não há sintaxe escondida no código.
+#
+# COMO ESTENDER
+#   • Novo verbo com um tipo já existente  → acrescente um bloco [[verbs]] (só texto).
+#   • Nova regra de forma (normalização)   → acrescente [[normalize]] (regex ou ação conhecida).
+#   • Novo conceito para a documentação    → acrescente [[concepts]].
+#   • Nova regra semântica                 → acrescente [[rules]] com enforced_by = id de uma checagem
+#                                            IMPLEMENTADA em validate() (o carregador recusa ids desconhecidos).
+#   • Novo TIPO de verbo (sintaxe nova)    → exige código em parser.py (KINDS) + descrição aqui.
+#
+# CONVENÇÕES
+#   • Strings TOML entre aspas simples ('...') são literais: use-as para regex (sem escapes).
+#   • Cada verbo declara o tipo (kind) que define como sua linha é lida.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+[meta]
+name = "UNIT-L"
+version = "0.1"
+purpose = "Descrever experimentos científicos sobre o framework UNIT-001. Quem escreve DESCREVE o experimento; o laboratório valida e executa. Não há laços, I/O nem funções definidas pelo usuário."
+rule_zero = "Nunca reimplemente uma capacidade que já existe: componha medidas, solvers, comparadores e analisadores registrados."
+
+[engine]
+# Fixes que são recomputados a partir da discretização real (não são eco do parâmetro).
+independent_fix = ["pml_nm", "buffer_nm", "n_inclusion"]
+# Únicos números literais permitidos em CHECK. Limites numéricos devem vir de LIMIT.
+allowed_check_numbers = [0, 1, 2]
+# Funções permitidas em expressões de DERIVE e CHECK.
+expression_functions = ["abs", "sqrt", "log", "log2", "log10", "exp", "min", "max"]
+
+# ───────────────────────────────────────────────────────────────────────────────
+# TIPOS DE VERBO (kind) — como cada linha é lida. Cada um tem sintaxe fixa.
+#   text         NOME "texto"
+#   kv           NOME chave = valor, chave = valor, ...
+#   solve        NOME solver_registrado [, opcao = valor, ...]
+#   measure      NOME alias = medida_registrada, medida_registrada, ...
+#   assign_expr  NOME nome = expressão
+#   check        NOME nome : expressão_booleana
+#   op_call      NOME resultado = operação(parâmetro = valor, ...)
+# ───────────────────────────────────────────────────────────────────────────────
+
+[[verbs]]
+name = "EXPERIMENT"
+kind = "block"
+doc = "Abre o bloco do experimento. Um EXPERIMENT por arquivo. Nome é um identificador."
+example = "EXPERIMENT Calibracao_convergencia {\n    ...\n}"
+
+[[verbs]]
+name = "GOAL"
+kind = "text"
+doc = "Pergunta científica do experimento, em texto. Aparece no relatório."
+example = 'GOAL "Piso numérico de R e T com PPW 15, 20, 30"'
+
+[[verbs]]
+name = "CASE"
+kind = "kv"
+keys = ["geometry"]
+wrap_lists = true
+doc = "Entidades sobre as quais o experimento roda. Cada valor de geometry vira um conjunto de casos (eixo de caso)."
+example = "CASE geometry = [ORDERED, CLUSTERED, RANDOM_1000]"
+
+[[verbs]]
+name = "FIX"
+kind = "kv"
+doc = "INVARIANTE: parâmetros constantes em todo o experimento. O motor VERIFICA que ficaram constantes no solver (quando o valor efetivo é recomputado) e recusa mudanças."
+example = "FIX frequency_thz = 300.0, n_bg = 1.0+0.0j, pml_nm = 200.0, buffer_nm = 300.0"
+
+[[verbs]]
+name = "VARY"
+kind = "kv"
+requires_list = true
+doc = "Eixo de varredura: lista com 2 ou mais valores. Produto cartesiano com CASE. Eixos numéricos de resolução (kind numerical) devem estar em ordem crescente."
+example = "VARY ppw = [15, 20, 30]"
+
+[[verbs]]
+name = "SOLVE"
+kind = "solve"
+doc = "Solver registrado. Opções: backend (auto|direct|iterative), memory_gb, reserva_gb (RAM mínima para o sentinela), timeout_s. Só um SOLVE por experimento."
+example = "SOLVE fdfd3d_te_y, backend = auto, reserva_gb = 2.0"
+
+[[verbs]]
+name = "MEASURE"
+kind = "measure"
+doc = "Medidas registradas que viram colunas de resultado. Formato alias = medida, ou só medida (alias = nome)."
+example = "MEASURE R = R_power, T = T_power, A = A_volume, chi95"
+
+[[verbs]]
+name = "DERIVE"
+kind = "assign_expr"
+doc = "Grandeza calculada a partir de medidas, limites e constantes, com operadores aritméticos e funções em [engine].expression_functions."
+example = "DERIVE closure = 1 - R - T - A"
+
+[[verbs]]
+name = "LIMIT"
+kind = "kv"
+doc = "Limite numérico que um CHECK usa. Valor 'pending' significa: o limite é decisão do pesquisador; o CHECK só reporta o valor medido (status PENDENTE)."
+example = "LIMIT closure_tol = pending"
+
+[[verbs]]
+name = "CHECK"
+kind = "check"
+doc = "Condição booleana sobre medidas e limites. Status por ponto: PASS, FAIL ou PENDENTE. Números literais só 0, 1 ou 2."
+example = "CHECK fechamento : abs(closure) <= closure_tol"
+
+[[verbs]]
+name = "COMPARE"
+kind = "op_call"
+doc = "Operação de comparação entre pontos (registrada em COMPARATORS). Ex.: diferenças entre níveis consecutivos de um eixo."
+example = "COMPARE passos = successive_diff(of = [R, T], along = ppw, group_by = [geometry])"
+
+[[verbs]]
+name = "ANALYZE"
+kind = "op_call"
+doc = "Análise de resultados (registrada em ANALYZERS). Ex.: piso numérico e E_crit por convergência."
+example = "ANALYZE conv = convergence(of = [R], along = ppw, safety_factor = 3)"
+
+[[verbs]]
+name = "OUTPUT"
+kind = "kv"
+keys = ["tables", "scalars"]
+wrap_lists = true
+doc = "O que vai para o relatório e para o resultado: tabelas (nomes de resultados) e escalares (resultado.chave)."
+example = "OUTPUT tables = [cases, passos, conv], scalars = [conv]"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# NORMALIZAÇÃO DE FORMA — correções inequívocas, sempre reportadas como AVISO.
+# action = "regex"        : aplica pattern → replace ao CORPO da linha (o que vem depois do verbo)
+# action = "wrap_list"    : envolve em colchetes a lista de um VARY sem colchetes
+# verbs = ["*"] vale para todos os verbos.
+# ───────────────────────────────────────────────────────────────────────────────
+
+[[normalize]]
+id = "trailing_comma"
+verbs = ["*"]
+action = "regex"
+pattern = ',\s*([\]\)\}])'
+replace = '\1'
+message = "vírgula final removida"
+
+[[normalize]]
+id = "colon_assignment"
+verbs = ["CASE", "FIX", "VARY", "LIMIT", "OUTPUT"]
+action = "regex"
+pattern = "([A-Za-z_]\\w*)\\s*:\\s*(?=[\\[\\\"\\x27\\w-])"
+replace = '\1 = '
+message = "':' trocado por '=' na atribuição"
+
+[[normalize]]
+id = "vary_brackets"
+verbs = ["VARY"]
+action = "wrap_list"
+message = "lista de VARY envolvida em colchetes"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# CONCEITOS — vocabulário que a LLM precisa para compor experimentos corretamente.
+# ───────────────────────────────────────────────────────────────────────────────
+
+[[concepts]]
+name = "parâmetro físico"
+definition = "Propriedade do sistema que define a física (frequência, índices, espessuras físicas). Pode ser FIX ou VARY, mas varrê-lo muda o problema físico."
+
+[[concepts]]
+name = "parâmetro numérico"
+definition = "Escolha de discretização (ex.: ppw). Variá-lo NÃO deve mudar a física: o motor confere que a assinatura física permanece idêntica entre níveis."
+
+[[concepts]]
+name = "invariante (FIX)"
+definition = "Parâmetro declarado constante. O motor confere que o valor efetivamente usado pelo solver é igual ao declarado, quando isso é verificável."
+
+[[concepts]]
+name = "eixo"
+definition = "Dimensão de variação: a geometria (CASE) e cada parâmetro em VARY. Um grupo é o conjunto de pontos que compartilham os valores dos eixos que não são 'along'."
+
+[[concepts]]
+name = "medida"
+definition = "Grandeza escalar por ponto, registrada em MEASURES. Não é reimplementada: é selecionada pelo nome."
+
+[[concepts]]
+name = "limite pendente"
+definition = "LIMIT x = pending. Um CHECK que depende dele fica PENDENTE e só reporta o valor medido. Não se escolhe limite sem evidência."
+
+[[concepts]]
+name = "piso numérico"
+definition = "Diferença entre níveis consecutivos de um eixo numérico, na última etapa. Estimativa de erro de discretização nos dados disponíveis (não é erro assintótico com menos de 4 níveis)."
+
+[[concepts]]
+name = "E_crit"
+definition = "Erro operacional de referência = fator de segurança × piso. O fator é convenção declarada no ANALYZE, não derivada."
+
+[[concepts]]
+name = "backend auto"
+definition = "auto: tenta o solver direto sob o sentinela de memória. Se a RAM cair abaixo da reserva, o mesmo ponto é repetido com o iterativo (mesma física)."
+
+# ───────────────────────────────────────────────────────────────────────────────
+# REGRAS SEMÂNTICAS — o que o validador garante. enforced_by deve existir em IMPLEMENTADOS (spec.py).
+# ───────────────────────────────────────────────────────────────────────────────
+
+[[rules]]
+id = "R01"
+text = "Todo parâmetro obrigatório do registro deve estar em FIX ou VARY."
+enforced_by = "required_param"
+
+[[rules]]
+id = "R02"
+text = "Um parâmetro não pode ser FIX e VARY ao mesmo tempo, nem aparecer duas vezes."
+enforced_by = "fix_vary_conflict"
+
+[[rules]]
+id = "R03"
+text = "Todo nome usado em DERIVE, CHECK, COMPARE, ANALYZE e OUTPUT deve ser medida, derivação, limite ou resultado já definido."
+enforced_by = "unknown_name"
+
+[[rules]]
+id = "R04"
+text = "Em CHECK, números literais só podem ser 0, 1 ou 2. Limites vêm de LIMIT."
+enforced_by = "check_literal"
+
+[[rules]]
+id = "R05"
+text = "Um eixo numérico de resolução (kind numerical) deve estar em ordem crescente."
+enforced_by = "numerical_order"
+
+[[rules]]
+id = "R06"
+text = "Nomes de parâmetros, medidas, solvers, geometrias e operações devem existir no registro; sugerimos o mais próximo."
+enforced_by = "unknown_registry_name"
+
+[[rules]]
+id = "R07"
+text = "Expressões só usam nomes conhecidos, constantes numéricas e as funções de [engine].expression_functions."
+enforced_by = "expression_safety"
+
+[[rules]]
+id = "R08"
+text = "A soma de casos (geometria × VARY) é estimada em memória e tempo antes da execução; pontos sem backend viável são declarados."
+enforced_by = "cost_estimate"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# EXEMPLO COMPLETO — modelo para as LLMs.
+# ───────────────────────────────────────────────────────────────────────────────
+
+[[examples]]
+name = "convergencia_minima"
+text = '''EXPERIMENT Convergencia_minima {
+    GOAL    "Piso numérico de T entre PPW 15 e 20"
+    CASE    geometry = [ORDERED]
+    FIX     frequency_thz = 300.0, n_bg = 1.0+0.0j, n_inclusion = 2.0+0.05j, pml_nm = 200.0, buffer_nm = 300.0
+    VARY    ppw = [15, 20]
+    SOLVE   fdfd3d_te_y, backend = auto
+    MEASURE T = T_power, A = A_volume
+    DERIVE  closure = 1 - T - A
+    LIMIT   closure_tol = pending
+    CHECK   fechamento : abs(closure) <= closure_tol
+    ANALYZE conv = convergence(of = [T], along = ppw, group_by = [geometry], safety_factor = 3)
+    OUTPUT  tables = [cases, conv], scalars = [conv]
+}'''
